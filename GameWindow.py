@@ -9,6 +9,8 @@ COLUMN_COUNT = ROW_COUNT
 GAME_WIDTH = TILE_SIZE * COLUMN_COUNT
 GAME_HEIGHT = TILE_SIZE * ROW_COUNT
 GAME_MAP = tile_map.OPTIMIZED_GAME_MAP1
+GAME_MAPS = tile_map.OPTIMIZED_GAME_MAPS
+selected_map_index = 0
 
 PLAYER_X = GAME_WIDTH / 2
 PLAYER_Y = GAME_HEIGHT / 2
@@ -581,7 +583,7 @@ def draw():
 def start_screen():
     menu_image = load_image("OIP (5).webp")
     menu_image = pygame.transform.scale(menu_image, (GAME_WIDTH, GAME_HEIGHT))
-    options = ("COMECAR", "SAIR")
+    options = ("COMECAR", "FASES", "SAIR")
     selected_option = 0
     option_rects = []
 
@@ -591,9 +593,14 @@ def start_screen():
                 return False
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
-                    selected_option = 1 - selected_option
+                    direction = 1 if event.key in (pygame.K_DOWN, pygame.K_s) else -1
+                    selected_option = (selected_option + direction) % len(options)
                 elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                    return selected_option == 0
+                    if selected_option == 0:
+                        return "start"
+                    if selected_option == 1:
+                        return "phases"
+                    return False
                 elif event.key == pygame.K_ESCAPE:
                     return False
             if event.type == pygame.MOUSEMOTION:
@@ -603,7 +610,11 @@ def start_screen():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for index, option_rect in enumerate(option_rects):
                     if option_rect.collidepoint(event.pos):
-                        return index == 0
+                        if index == 0:
+                            return "start"
+                        if index == 1:
+                            return "phases"
+                        return False
 
         window.blit(menu_image, (0, 0))
 
@@ -628,6 +639,77 @@ def start_screen():
 
         pygame.display.update()
         clock.tick(60)
+
+
+def phase_screen():
+    options = ("FASE 1", "FASE 2", "FASE 3")
+    selected_option = selected_map_index
+    option_rects = []
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                    direction = 1 if event.key in (pygame.K_DOWN, pygame.K_s) else -1
+                    selected_option = (selected_option + direction) % len(options)
+                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    return selected_option
+                elif event.key == pygame.K_ESCAPE:
+                    return None
+            if event.type == pygame.MOUSEMOTION:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        selected_option = index
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        return index
+
+        window.fill("black")
+        title = menu_font.render("SELECIONE A FASE", False, "white")
+        window.blit(title, title.get_rect(center=(GAME_WIDTH // 2, TILE_SIZE * 2)))
+
+        option_rects = []
+        for index, option in enumerate(options):
+            option_surface = menu_font.render(
+                option,
+                False,
+                "yellow" if index == selected_option else "white",
+            )
+            option_rect = option_surface.get_rect(
+                center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + index * TILE_SIZE * 2)
+            )
+            option_rects.append(option_rect)
+            window.blit(option_surface, option_rect)
+
+        instruction = menu_font.render("ESC para voltar", False, "white")
+        window.blit(
+            instruction,
+            instruction.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT - TILE_SIZE)),
+        )
+        pygame.display.update()
+        clock.tick(60)
+
+
+def select_level():
+    global GAME_MAP, selected_map_index
+
+    while True:
+        menu_action = start_screen()
+        if menu_action is False:
+            return False
+        if menu_action == "phases":
+            selected_level = phase_screen()
+            if selected_level is False:
+                return False
+            if selected_level is None:
+                continue
+            selected_map_index = selected_level
+        GAME_MAP = GAME_MAPS[selected_map_index]
+        reset_game()
+        return True
 
 
 def level_complete_screen():
@@ -663,7 +745,7 @@ doors = []
 level_complete = False
 create_map()
 
-if not start_screen():
+if not select_level():
     pygame.quit()
     exit()
 
@@ -674,7 +756,7 @@ while True:
             exit()
         reset_game()
         level_complete = False
-        if not start_screen():
+        if not select_level():
             pygame.quit()
             exit()
         continue
