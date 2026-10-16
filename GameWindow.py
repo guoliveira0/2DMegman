@@ -44,6 +44,9 @@ BLADER_WIDTH = 32
 BLADER_HEIGHT = 40
 BLADER_VELOCITY_X = 4
 BLADER_VELOCITY_Y = 2
+PLAYER_WALK_WIDTH = 48
+PLAYER_WALK_HEIGHT = 48
+PLAYER_WALK_SHOOT_WIDTH  = 62
 
 #images
 
@@ -85,6 +88,11 @@ door_tile_image = load_image("door-tile.png", (TILE_SIZE, TILE_SIZE))
 room_tile_image = load_image("room-tile.png", (TILE_SIZE, TILE_SIZE))
 score_ball_image = load_image("score-ball.png", (TILE_SIZE/2, TILE_SIZE/2))
 
+player_image_walk_right = [load_image(f"megaman-right-walk{i}.png", (PLAYER_WALK_WIDTH, PLAYER_WALK_HEIGHT)) for i in range(4)]
+player_image_walk_left = [load_image(f"megaman-left-walk{i}.png", (PLAYER_WALK_WIDTH, PLAYER_WALK_HEIGHT)) for i in range(4)]
+player_image_walk_shoot_right = [load_image(f"megaman-right-walk-shoot{i}.png", (PLAYER_WALK_SHOOT_WIDTH, PLAYER_WALK_HEIGHT)) for i in range(4)]
+player_image_walk_shoot_left = [load_image(f"megaman-left-walk-shoot{i}.png", (PLAYER_WALK_SHOOT_WIDTH, PLAYER_WALK_HEIGHT)) for i in range(4)]
+
 pygame.init()
 window = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
 pygame.display.set_caption("Pygame Window Example")
@@ -122,34 +130,59 @@ class Player(pygame.Rect):
         self.shooting = False
         self.bullets = []
         self.score = 0
+        self.walking = False
+        self.cuurent_walk_index = 0
+        self.last_update_walk_index = pygame.time.get_ticks() 
         
     def update_image(self):
-        
-        if self.jumping and self.shooting:
-                 
-            if self.direction == "right":
-                self.image = player_image_jump_shoot_right
-            elif self.direction == "left":
-                self.image = player_image_jump_shoot_left
-        
-        elif self.shooting:
-            if self.direction == "right":
-                self.image = player_image_shoot_right
-            elif self.direction == "left":
-                self.image = player_image_shoot_left
-        elif self.jumping:
-         
-            if self.direction == "right":
-                self.image = player_image_jump_right
-            elif self.direction == "left":
-                self.image = player_image_jump_left
+        if self.walking and not self.jumping:
+            if self.shooting:
+                if self.direction == "right":
+                    self.image = player_image_walk_shoot_right[self.cuurent_walk_index]
+                elif self.direction == "left":
+                    self.image = player_image_walk_shoot_left[self.cuurent_walk_index]
+            else:
+                if self.direction == "right":
+                    self.image = player_image_walk_right[self.cuurent_walk_index]
+                elif self.direction == "left":
+                    self.image = player_image_walk_left[self.cuurent_walk_index]
+            self.update_walk_animation()
+
         else:
-         
-    
-            if self.direction == "right":
-              self.image = player_image_right
-            elif self.direction == "left":
-              self.image = player_image_left
+            self.current_walk_index = 0
+            
+            if self.jumping and self.shooting:
+                             
+                        if self.direction == "right":
+                            self.image = player_image_jump_shoot_right
+                        elif self.direction == "left":
+                            self.image = player_image_jump_shoot_left
+                    
+            elif self.shooting:
+                        if self.direction == "right":
+                            self.image = player_image_shoot_right
+                        elif self.direction == "left":
+                            self.image = player_image_shoot_left
+            elif self.jumping:
+                     
+                        if self.direction == "right":
+                            self.image = player_image_jump_right
+                        elif self.direction == "left":
+                            self.image = player_image_jump_left
+            else:
+                     
+                
+                        if self.direction == "right":
+                          self.image = player_image_right
+                        elif self.direction == "left":
+                          self.image = player_image_left
+        
+              
+    def update_walk_animation(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update_walk_index >= 250:
+            self.last_update_walk_index = now
+            self.cuurent_walk_index = (self.cuurent_walk_index + 1) % len(player_image_walk_right)
               
     def set_invencible(self, milliseconds=1000):
         self.invencible = True
@@ -579,6 +612,11 @@ while True:
         ## player.y = max(player.y - PLAYER_DISTANCE,0)
         player.velocity_y = PLAYER_VELOCITY_Y
         player.jumping = True
+        
+    if keys[pygame.K_LEFT] or keys[pygame.K_a] or keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        player.walking = True
+    else:
+        player.walking = False
 
     ##if keys[pygame.K_DOWN] or keys[pygame.K_s]:
        ## player.y = min(player.y + PLAYER_DISTANCE, GAME_HEIGHT - player.height)
