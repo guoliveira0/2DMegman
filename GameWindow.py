@@ -303,7 +303,9 @@ def create_map():
             elif map_code == 8:
                 spikes.append(Tile(x, y, spike_image))
             elif map_code == 9:
-                background_tiles.append(Tile(x, y, door_tile_image))
+                door = Tile(x, y, door_tile_image)
+                background_tiles.append(door)
+                doors.append(door)
             elif map_code == 10:
                 background_tiles.append(Tile(x, y, room_tile_image))
             elif map_code == 11:
@@ -312,7 +314,7 @@ def create_map():
                 bladers.append(Blader(x, y))
 
 def reset_game():
-    global metalls, tiles, items, metall_bullets, spikes, bladers, background_tiles, player, game_over
+    global metalls, tiles, items, metall_bullets, spikes, bladers, background_tiles, doors, player, game_over
     player  = Player()
     metalls = []
     tiles = []
@@ -321,6 +323,7 @@ def reset_game():
     spikes = []
     bladers = []
     background_tiles = []
+    doors = []
     game_over = False
     create_map()
     
@@ -372,6 +375,9 @@ def move_player_x(velocity_x):
     tile = check_tile_collision(player)
     if tile is not None:
         move_map_x(-velocity_x)
+    elif any(player.colliderect(door) for door in doors):
+        global level_complete
+        level_complete = True
     
 def move_map_x(velocity_x):
     for tile in tiles:
@@ -624,6 +630,26 @@ def start_screen():
         clock.tick(60)
 
 
+def level_complete_screen():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return True
+
+        window.fill("black")
+        title = menu_font.render("FASE CONCLUIDA!", False, "yellow")
+        instruction = menu_font.render("Pressione ESC para voltar", False, "white")
+        window.blit(title, title.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 - TILE_SIZE)))
+        window.blit(
+            instruction,
+            instruction.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + TILE_SIZE)),
+        )
+        pygame.display.update()
+        clock.tick(60)
+
+
 player  = Player()
 #metall = Metall(player.x + TILE_SIZE*3, TILE_SIZE*6)
 metalls = []
@@ -633,6 +659,8 @@ metall_bullets = []
 spikes = []
 bladers = []
 background_tiles = []
+doors = []
+level_complete = False
 create_map()
 
 if not start_screen():
@@ -640,6 +668,17 @@ if not start_screen():
     exit()
 
 while True:
+    if level_complete:
+        if not level_complete_screen():
+            pygame.quit()
+            exit()
+        reset_game()
+        level_complete = False
+        if not start_screen():
+            pygame.quit()
+            exit()
+        continue
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
