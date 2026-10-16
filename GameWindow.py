@@ -100,6 +100,7 @@ pygame.display.set_icon(player_image_right)
 clock = pygame.time.Clock()
 pygame.font.init()
 game_font = pygame.font.Font("./megaman-game-font.otf", 24)
+menu_font = pygame.font.Font("./megaman-game-font.otf", 20)
 game_over = False
 
 INVENCIBLE_END = pygame.USEREVENT + 0
@@ -569,6 +570,60 @@ def draw():
         window.blit(text_surface, (GAME_WIDTH/8, GAME_HEIGHT/2))
         text_surface = game_font.render("[ENTER] para reiniciar", False, "white")
         window.blit(text_surface, (GAME_WIDTH/8, GAME_HEIGHT/2 + TILE_SIZE))
+
+
+def start_screen():
+    menu_image = load_image("OIP (5).webp")
+    menu_image = pygame.transform.scale(menu_image, (GAME_WIDTH, GAME_HEIGHT))
+    options = ("COMECAR", "SAIR")
+    selected_option = 0
+    option_rects = []
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                    selected_option = 1 - selected_option
+                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    return selected_option == 0
+                elif event.key == pygame.K_ESCAPE:
+                    return False
+            if event.type == pygame.MOUSEMOTION:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        selected_option = index
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        return index == 0
+
+        window.blit(menu_image, (0, 0))
+
+        overlay = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 100))
+        window.blit(overlay, (0, 0))
+
+
+
+        option_rects = []
+        for index, option in enumerate(options):
+            option_surface = menu_font.render(
+                option,
+                False,
+                "yellow" if index == selected_option else "white",
+            )
+            option_rect = option_surface.get_rect(
+                center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + index * TILE_SIZE * 2)
+            )
+            option_rects.append(option_rect)
+            window.blit(option_surface, option_rect)
+
+        pygame.display.update()
+        clock.tick(60)
+
+
 player  = Player()
 #metall = Metall(player.x + TILE_SIZE*3, TILE_SIZE*6)
 metalls = []
@@ -579,6 +634,10 @@ spikes = []
 bladers = []
 background_tiles = []
 create_map()
+
+if not start_screen():
+    pygame.quit()
+    exit()
 
 while True:
     for event in pygame.event.get():
