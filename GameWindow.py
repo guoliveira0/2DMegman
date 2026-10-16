@@ -353,7 +353,7 @@ def create_map():
                 bladers.append(Blader(x, y))
 
 def reset_game():
-    global metalls, tiles, items, metall_bullets, spikes, bladers, background_tiles, doors, player, game_over
+    global metalls, tiles, items, metall_bullets, spikes, bladers, background_tiles, doors, player, game_over, paused
     player  = Player()
     metalls = []
     tiles = []
@@ -364,6 +364,7 @@ def reset_game():
     background_tiles = []
     doors = []
     game_over = False
+    paused = False
     create_map()
     
              
@@ -617,6 +618,20 @@ def draw():
         window.blit(text_surface, (GAME_WIDTH/8, GAME_HEIGHT/2 + TILE_SIZE))
 
 
+def draw_pause_overlay():
+    overlay = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 150))
+    window.blit(overlay, (0, 0))
+
+    title = menu_font.render("JOGO PAUSADO", False, "yellow")
+    instruction = menu_font.render("Pressione ESC para continuar", False, "white")
+    window.blit(title, title.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 - TILE_SIZE)))
+    window.blit(
+        instruction,
+        instruction.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + TILE_SIZE)),
+    )
+
+
 def start_screen():
     menu_image = load_image("OIP (5).webp")
     menu_image = pygame.transform.scale(menu_image, (GAME_WIDTH, GAME_HEIGHT))
@@ -848,6 +863,7 @@ bladers = []
 background_tiles = []
 doors = []
 level_complete = False
+paused = False
 create_map()
 
 if not select_level():
@@ -871,10 +887,20 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            if not game_over:
+                paused = not paused
         elif event.type == INVENCIBLE_END:
             player.invencible = False
         elif event.type == SHOOTING_END:
             player.shooting = False
+
+    if paused:
+        draw()
+        draw_pause_overlay()
+        pygame.display.update()
+        clock.tick(60)
+        continue
   
     """
         if event.type == pygame.KEYDOWN:
