@@ -3,7 +3,9 @@
 Um jogo de plataforma 2D inspirado nos clássicos de ação, desenvolvido com
 Python e Pygame.
 
-![Demonstração do jogo](images/megaman-left-walk-shoot.gif)
+<p align="center">
+  <img src="images/megaman-left-walk-shoot.gif" alt="Demonstração do jogo">
+</p>
 
 ## Como jogar
 
@@ -63,4 +65,3 @@ Se o ambiente virtual do projeto já estiver configurado:
 
 - Python 3.12+
 - Pygame
-- Pillow (usado para gerar a imagem de demonstração)
