@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+import json
 import tile_map
 #game variables
 TILE_SIZE = 32
@@ -12,6 +13,41 @@ GAME_MAP = tile_map.OPTIMIZED_GAME_MAP1
 GAME_MAPS = tile_map.OPTIMIZED_GAME_MAPS
 selected_map_index = 0
 selected_difficulty = 0
+selected_phase_index = 0
+PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "progress.json")
+completed_phases = set()
+
+
+def load_progress():
+    try:
+        with open(PROGRESS_FILE, "r", encoding="utf-8") as progress_file:
+            progress = json.load(progress_file)
+    except FileNotFoundError:
+        return set()
+    except json.JSONDecodeError:
+        return set()
+
+    if not isinstance(progress, dict):
+        return set()
+
+    saved_phases = progress.get("completed_phases", [])
+    if not isinstance(saved_phases, list):
+        return set()
+    return {phase for phase in saved_phases if isinstance(phase, int) and 0 <= phase < 3}
+
+
+def save_progress():
+    progress = {"completed_phases": sorted(completed_phases)}
+    with open(PROGRESS_FILE, "w", encoding="utf-8") as progress_file:
+        json.dump(progress, progress_file, indent=2)
+
+
+def complete_current_phase():
+    completed_phases.add(selected_phase_index)
+    save_progress()
+
+
+completed_phases = load_progress()
 
 PLAYER_X = GAME_WIDTH / 2
 PLAYER_Y = GAME_HEIGHT / 2
@@ -674,8 +710,11 @@ def phase_screen():
 
         option_rects = []
         for index, option in enumerate(options):
+            option_text = option
+            if index in completed_phases:
+                option_text += " - CONCLUIDA"
             option_surface = menu_font.render(
-                option,
+                option_text,
                 False,
                 "yellow" if index == selected_option else "white",
             )
@@ -747,7 +786,7 @@ def difficulty_screen():
 
 
 def select_level():
-    global GAME_MAP, selected_map_index, selected_difficulty
+    global GAME_MAP, selected_map_index, selected_difficulty, selected_phase_index
 
     level_maps = (
         (0, 5),  # Fase 1: facil, dificil
@@ -770,6 +809,7 @@ def select_level():
                 return False
             if difficulty is None:
                 continue
+            selected_phase_index = selected_level
             selected_difficulty = difficulty
             selected_map_index = level_maps[selected_level][difficulty]
         GAME_MAP = GAME_MAPS[selected_map_index]
@@ -816,6 +856,7 @@ if not select_level():
 
 while True:
     if level_complete:
+        complete_current_phase()
         if not level_complete_screen():
             pygame.quit()
             exit()
