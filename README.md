@@ -3,7 +3,7 @@
 Um jogo de plataforma 2D inspirado nos clássicos de ação, desenvolvido com
 Python e Pygame.
 
-![Demonstração do jogo](images/gameplay-demo.gif)
+![Demonstração do jogo](images/megaman-left-walk-shoot.gif)
 
 ## Como jogar
 
