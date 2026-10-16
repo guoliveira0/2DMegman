@@ -11,6 +11,7 @@ GAME_HEIGHT = TILE_SIZE * ROW_COUNT
 GAME_MAP = tile_map.OPTIMIZED_GAME_MAP1
 GAME_MAPS = tile_map.OPTIMIZED_GAME_MAPS
 selected_map_index = 0
+selected_difficulty = 0
 
 PLAYER_X = GAME_WIDTH / 2
 PLAYER_Y = GAME_HEIGHT / 2
@@ -693,8 +694,66 @@ def phase_screen():
         clock.tick(60)
 
 
+def difficulty_screen():
+    options = ("FACIL", "DIFICIL")
+    selected_option = selected_difficulty
+    option_rects = []
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                    direction = 1 if event.key in (pygame.K_DOWN, pygame.K_s) else -1
+                    selected_option = (selected_option + direction) % len(options)
+                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    return selected_option
+                elif event.key == pygame.K_ESCAPE:
+                    return None
+            if event.type == pygame.MOUSEMOTION:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        selected_option = index
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for index, option_rect in enumerate(option_rects):
+                    if option_rect.collidepoint(event.pos):
+                        return index
+
+        window.fill("black")
+        title = menu_font.render("SELECIONE A DIFICULDADE", False, "white")
+        window.blit(title, title.get_rect(center=(GAME_WIDTH // 2, TILE_SIZE * 2)))
+
+        option_rects = []
+        for index, option in enumerate(options):
+            option_surface = menu_font.render(
+                option,
+                False,
+                "yellow" if index == selected_option else "white",
+            )
+            option_rect = option_surface.get_rect(
+                center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + index * TILE_SIZE * 2)
+            )
+            option_rects.append(option_rect)
+            window.blit(option_surface, option_rect)
+
+        instruction = menu_font.render("ESC para voltar", False, "white")
+        window.blit(
+            instruction,
+            instruction.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT - TILE_SIZE)),
+        )
+        pygame.display.update()
+        clock.tick(60)
+
+
 def select_level():
-    global GAME_MAP, selected_map_index
+    global GAME_MAP, selected_map_index, selected_difficulty
+
+    level_maps = (
+        (0, 5),  # Fase 1: facil, dificil
+        (1, 3),  # Fase 2: facil, dificil
+        (2, 4),  # Fase 3: facil, dificil
+    )
 
     while True:
         menu_action = start_screen()
@@ -706,7 +765,13 @@ def select_level():
                 return False
             if selected_level is None:
                 continue
-            selected_map_index = selected_level
+            difficulty = difficulty_screen()
+            if difficulty is False:
+                return False
+            if difficulty is None:
+                continue
+            selected_difficulty = difficulty
+            selected_map_index = level_maps[selected_level][difficulty]
         GAME_MAP = GAME_MAPS[selected_map_index]
         reset_game()
         return True
