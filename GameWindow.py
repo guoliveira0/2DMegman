@@ -1,9 +1,14 @@
-import pygame
+import json
 import os
 import random
-import json
+
+import pygame
+
 import tile_map
-#game variables
+
+# ---------------------------------------------------------------------------
+# Configuracoes gerais e estado persistente
+# ---------------------------------------------------------------------------
 TILE_SIZE = 32
 ROW_COUNT = 16
 COLUMN_COUNT = ROW_COUNT
@@ -18,6 +23,7 @@ PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "progre
 completed_phases = set()
 
 
+# Carrega as fases concluidas de uma partida anterior.
 def load_progress():
     try:
         with open(PROGRESS_FILE, "r", encoding="utf-8") as progress_file:
@@ -36,12 +42,14 @@ def load_progress():
     return {phase for phase in saved_phases if isinstance(phase, int) and 0 <= phase < 3}
 
 
+# Salva o progresso em um arquivo para que ele continue disponivel ao reabrir o jogo.
 def save_progress():
     progress = {"completed_phases": sorted(completed_phases)}
     with open(PROGRESS_FILE, "w", encoding="utf-8") as progress_file:
         json.dump(progress, progress_file, indent=2)
 
 
+# Registra a fase atual como concluida assim que o jogador chega a porta final.
 def complete_current_phase():
     completed_phases.add(selected_phase_index)
     save_progress()
@@ -87,8 +95,11 @@ PLAYER_WALK_WIDTH = 48
 PLAYER_WALK_HEIGHT = 48
 PLAYER_WALK_SHOOT_WIDTH  = 62
 
-#images
+# ---------------------------------------------------------------------------
+# Recursos visuais e inicializacao do Pygame
+# ---------------------------------------------------------------------------
 
+# Carrega uma imagem e aplica escala quando necessario.
 def load_image(image_name, scale = None):
     image = pygame.image.load(os.path.join("images", image_name))
     if scale is not None:
@@ -134,7 +145,7 @@ player_image_walk_shoot_left = [load_image(f"megaman-left-walk-shoot{i}.png", (P
 
 pygame.init()
 window = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
-pygame.display.set_caption("Pygame Window Example")
+pygame.display.set_caption("2D Megaman")
 pygame.display.set_icon(player_image_right)
 clock = pygame.time.Clock()
 pygame.font.init()
@@ -146,6 +157,9 @@ INVENCIBLE_END = pygame.USEREVENT + 0
 SHOOTING_END = pygame.USEREVENT + 1
 
 
+# ---------------------------------------------------------------------------
+# Entidades do jogo: jogador, itens e inimigos
+# ---------------------------------------------------------------------------
 class Player(pygame.Rect):
     class Bullet(pygame.Rect):
         def __init__(self):
@@ -312,6 +326,10 @@ class Blader(pygame.Rect):
             self.image = blader_image_left
         elif self.direction == "right":
             self.image = blader_image_right 
+# ---------------------------------------------------------------------------
+# Criacao do mapa e reinicializacao da fase
+# ---------------------------------------------------------------------------
+
 def append_tiles(map_code, tile):
     if map_code < 0:
         background_tiles.append(tile)
@@ -367,11 +385,10 @@ def reset_game():
     paused = False
     create_map()
     
-             
+# ---------------------------------------------------------------------------
+# Colisoes, movimentacao e regras de gameplay
+# ---------------------------------------------------------------------------
 
-    
-
-        
 def check_tile_collision(character):
     for tile in tiles:
         if character.colliderect(tile):
@@ -415,7 +432,7 @@ def move_player_x(velocity_x):
     tile = check_tile_collision(player)
     if tile is not None:
         move_map_x(-velocity_x)
-    elif any(player.colliderect(door) for door in doors):
+    elif player.health > 0 and any(player.colliderect(door) for door in doors):
         global level_complete
         level_complete = True
     
@@ -443,7 +460,7 @@ def move():
     global items
     global bladers
     global metall_bullets
-    global game_over
+    global game_over, level_complete
     #if player.direction == "left" and player.velocity_x < 0:
        # player.velocity_x += FRICTION
    # elif player.direction == "right" and player.velocity_x > 0:
@@ -501,7 +518,6 @@ def move():
         check_tile_collision_y(metall)
     
         if not player.invencible and player.colliderect(metall):
-          print("Player collided with Metall!")
           player.health -= 1
           player.set_invencible()
           
@@ -556,11 +572,10 @@ def move():
     
     if player.health <= 0 or player.y > GAME_HEIGHT:
        game_over = True
-   
-        
-            
-    
-    
+       level_complete = False
+# ---------------------------------------------------------------------------
+# Desenho da cena e elementos da interface
+# ---------------------------------------------------------------------------
     
 def draw():
     #window.fill("blue")
@@ -631,6 +646,10 @@ def draw_pause_overlay():
         instruction.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT // 2 + TILE_SIZE)),
     )
 
+
+# ---------------------------------------------------------------------------
+# Telas de menu e selecao de fase
+# ---------------------------------------------------------------------------
 
 def start_screen():
     menu_image = load_image("OIP (5).webp")
@@ -852,6 +871,10 @@ def level_complete_screen():
         clock.tick(60)
 
 
+# ---------------------------------------------------------------------------
+# Inicializacao e loop principal do jogo
+# ---------------------------------------------------------------------------
+
 player  = Player()
 #metall = Metall(player.x + TILE_SIZE*3, TILE_SIZE*6)
 metalls = []
@@ -871,6 +894,7 @@ if not select_level():
     exit()
 
 while True:
+    # Mostra a tela de conclusao e prepara a proxima fase.
     if level_complete:
         complete_current_phase()
         if not level_complete_screen():
@@ -883,6 +907,7 @@ while True:
             exit()
         continue
 
+    # Processa eventos de janela, pausa e temporizadores dos personagens.
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -901,19 +926,8 @@ while True:
         pygame.display.update()
         clock.tick(60)
         continue
-  
-    """
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_UP , pygame.K_w) :
-                player.y -=5
-            if event.key in (pygame.K_DOWN , pygame.K_s) :
-                player.y +=5
-            if event.key in (pygame.K_LEFT , pygame.K_a) :
-                player.x -=5
-            if event.key in (pygame.K_RIGHT , pygame.K_d) :
-                player.x +=5
-"""
 
+    # Le as teclas pressionadas e transforma a entrada do jogador em acoes.
     keys = pygame.key.get_pressed()
     if (keys[pygame.K_RETURN] or keys[pygame.K_KP_ENTER]) and game_over:
         reset_game()
@@ -930,28 +944,20 @@ while True:
     else:
         player.walking = False
 
-    ##if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-       ## player.y = min(player.y + PLAYER_DISTANCE, GAME_HEIGHT - player.height)
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        ##player.x = max(player.x - PLAYER_DISTANCE, 0)
-       # player.velocity_x  = -PLAYER_VELOCITY_X
         move_player_x(PLAYER_VELOCITY_X)
         player.direction = "left"
         
-        
-        
-        
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        ##player.x = min(player.x + PLAYER_DISTANCE, GAME_WIDTH - player.width)
-      #  player.velocity_x  = PLAYER_VELOCITY_X
         move_player_x(-PLAYER_VELOCITY_X)
         player.direction = "right"
         
     if keys[pygame.K_x] or keys[pygame.K_SPACE]:
         player.set_shooting()
     
-    if not game_over:  
-     move()
-     draw()
-     pygame.display.update()
-     clock.tick(60)
+    # Atualiza a simulacao e desenha um novo quadro enquanto o jogo esta ativo.
+    if not game_over:
+        move()
+        draw()
+        pygame.display.update()
+        clock.tick(60)
